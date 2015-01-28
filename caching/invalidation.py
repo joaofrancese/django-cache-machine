@@ -42,16 +42,18 @@ def make_key(k, with_locale=True):
 def get_root_key(model):
     key = getattr(model, '__caching_root_key', None)
     if not key:
-        # In case of inheritance, ensure the base model is always used as the root key.
+        # In case of (non-abstract) inheritance, ensure the base model is always used as the root key.
         classes = [model]
         base_model = model
         while classes:
             class_ = classes.pop(0)
-            if issubclass(class_, Model):
-                base_model = class_
+            if issubclass(class_, Model) and class_ != Model:
+                # Abstract base classes should be inspected, but they cannot be selected as the base model themselves.
+                if not class_._meta.abstract:
+                    base_model = class_
                 classes += list(class_.__bases__)
-                
-        key = make_key('caching:root:%s' % hash(base_model))
+
+        key = make_key('caching:root:%s.%s' % (base_model.__module__, base_model.__name__), with_locale=False)
         model.__caching_root_key = key
     return key
 
@@ -121,7 +123,7 @@ def cache_set_many(model, items, timeout=None, root_key=None, root_timeout=None)
     if timeout is None:
         timeout = DEFAULT_TIMEOUT
 
-    root_key = make_key('caching:root:%s' % hash(model))
+    root_key = get_root_key(model)
     prefix = cache.get(root_key)
     if prefix is None:
         prefix = datetime.datetime.now().isoformat()
