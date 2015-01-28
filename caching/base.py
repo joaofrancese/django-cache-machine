@@ -46,6 +46,11 @@ class CachingManager(models.Manager):
     def post_delete(self, instance, **kwargs):
         self.invalidate(instance)
 
+    def bulk_create(self, *args, **kwargs):
+        result = super(CachingManager, self).bulk_create(*args, **kwargs)
+        self.invalidate()
+        return result
+
     def invalidate(self, *objects):
         """Invalidate the root key associated with the model class."""
         cache_clear_root(self.model)
