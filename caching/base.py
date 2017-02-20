@@ -39,7 +39,11 @@ class CachingManager(models.Manager):
         signals.post_save.connect(self.post_save, sender=cls)
         signals.post_delete.connect(self.post_delete, sender=cls)
         for m2m in cls._meta.many_to_many:
-            signals.m2m_changed.connect(self.m2m_changed, sender=m2m.rel.through)
+            m2m_through = m2m.rel.through
+            if isinstance(m2m_through, basestring) and '.' not in m2m_through:
+                # Ensure the class name is in app_label.ModelName notation.
+                m2m_through = '%s.%s' % (cls._meta.app_label, m2m_through)
+            signals.m2m_changed.connect(self.m2m_changed, sender=m2m_through)
         return super(CachingManager, self).contribute_to_class(cls, name)
 
     def post_save(self, instance, **kwargs):
