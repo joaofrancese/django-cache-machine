@@ -33,6 +33,9 @@ class CachingManager(models.Manager):
     use_for_related_fields = True
 
     def get_query_set(self):
+        return self.get_queryset()
+
+    def get_queryset(self):
         return CachingQuerySet(self.model, using=self._db)
 
     def contribute_to_class(self, cls, name):
