@@ -69,13 +69,15 @@ class CachingManager(models.Manager):
             while i < len(models_to_clear):
                 model = models_to_clear[i]
                 i += 1
-                for f in model._meta.fields:
+                fields = [f for f in model._meta.fields] \
+                       + [f for f in model._meta.many_to_many] \
+                       + [f[0].field for f in model._meta.get_all_related_objects_with_model()] \
+                       + [f.field for f in model._meta.get_all_related_many_to_many_objects()]
+                for f in fields:
                     if f.rel and issubclass(f.rel.to, CachingMixin) and f.rel.to not in models_to_clear:
                         models_to_clear.append(f.rel.to)
-                for f in model._meta.many_to_many:
-                    if issubclass(f.rel.to, CachingMixin) and f.rel.to not in models_to_clear:
-                        models_to_clear.append(f.rel.to)
-                    if issubclass(f.rel.through, CachingMixin) and f.rel.through not in models_to_clear:
+                    if f.rel and hasattr(f.rel, 'through') \
+                            and issubclass(f.rel.through, CachingMixin) and f.rel.through not in models_to_clear:
                         models_to_clear.append(f.rel.through)
 
             # Cache the models list (using a class variable, not Django's cache!).
