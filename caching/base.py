@@ -181,7 +181,7 @@ class CachingQuerySet(models.query.QuerySet):
     def query_key(self):
         clone = self.query.clone()
         sql, params = clone.get_compiler(using=self.db).as_sql()
-        return hash(sql % params)
+        return hash(sql % params) if params else hash(sql)
 
     def iterator(self):
         iterator = super(CachingQuerySet, self).iterator
